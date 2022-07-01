@@ -14,11 +14,11 @@ c:\pydrology> pip install .
 
 ## Currently supported data sources
 
-USGS Streamflow Conditions (https://waterdata.usgs.gov/nwis/rt)
+**USGS Streamflow Conditions** (https://waterdata.usgs.gov/nwis/rt)
 - Stream gage measurements
 - Discharge values from rating curves
 
-NOAA SC-ACIS Daily Meteorology (https://scacis.rcc-acis.org/)
+**NOAA SC-ACIS Daily Meteorology** (https://scacis.rcc-acis.org/)
 - Maximum Temperature
 - Minimum Temperature
 - Average Temperature
