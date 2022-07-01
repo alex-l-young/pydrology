@@ -8,14 +8,24 @@ import numpy as np
 import requests
 import os
 
-# Local imports.
-
-
-
 # ==============================================
 # Functions.
 
 def request_acis_data(met_elements, site_id, start_date, end_date):
+    """
+    Request meteorology data from NOAA's ACIS. Data is daily and the following meteorology variables can be requested.
+        - Maximum Temperature (maxt)
+        - Minimum Temperature (mint)
+        - Average Temperature (avgt)
+        - Precipitation (pcpn)
+        - Snow Depth (snow)
+    :param met_elements [list]: Names of the elements/variables to be requested.
+    :param site_id [string]: Site ID name. Add <space>6 to the end of GHCN site IDs. Add <space>2 for coop site ids.
+        (E.g., "USS0020A23S" => "USS0020A23S 6")
+    :param start_date [string]: Start date of request. Format yyyy-mm-dd. E.g., '2022-01-01'
+    :param end_date [string]:  End date of request. Format yyyy-mm-dd. E.g., '2022-01-01'
+    :return: Data Frame of the requested ACIS data.
+    """
 
     # Meteorology elements reference.
     met_elements_ref = {'maxt': 'MaxTemp', 'mint': 'MinTemp', 'avgt': 'AvgTemp', 'pcpn': 'Precipitation',
@@ -81,9 +91,9 @@ def request_acis_data(met_elements, site_id, start_date, end_date):
 def acis_to_csv(acis_df, csv_dir):
     """
     Save the ACIS DataFrame as a csv.
-    :param acis_df: ACIS DataFrame. Constructed from request_acis_data().
-    :param csv_dir: Directory in which to save the ACIS data.
-    :return:
+    :param acis_df [Data Frame]: ACIS DataFrame. Constructed from request_acis_data().
+    :param csv_dir [string]: Directory in which to save the ACIS data.
+    :return: None
     """
 
     # Save to csv file "<site_name>_<site_id>_<lat>_<lon>_<start_date>_<end_date>.csv".
