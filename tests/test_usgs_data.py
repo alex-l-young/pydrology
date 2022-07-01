@@ -1,12 +1,12 @@
 # ====================================================================================================
-# Test script for pydrology/Data_Requests/usgs_data.py
+# Test script for pydrology/data_requests/usgs_data.py
 # ====================================================================================================
 
 # Library imports.
 import pandas as pd
 
 # Local imports.
-from pydrology.Data_Requests.usgs_data import download_usgs_gage_data, resample_gage_data
+from pydrology.data_requests.usgs_data import download_usgs_gage_data, resample_gage_data
 
 class TestClassUsgs:
     def setup(self):
