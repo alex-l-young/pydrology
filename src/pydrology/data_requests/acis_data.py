@@ -53,7 +53,7 @@ def request_acis_data(met_elements, site_id, start_date, end_date):
     # Get dictionary response.
     try:
         met_data = r.json()
-        print(met_data)
+        # print(met_data)
     except Exception as e:
         print(e)
         print('Could not make MET Dictionary from response.')
