@@ -49,12 +49,14 @@ def plot_missing_ratio(df, plotting_col, missing_value='M'):
 
 def plot_data_timeseries(df, data_col, time_col, missing_value='M'):
 
+    # Extract valid data.
     data = df.loc[:, data_col].to_numpy()
     data_valid = pd.to_numeric(data, errors='coerce')
-    t = pd.to_datetime(df.loc[:, time_col])
+    t = pd.to_datetime(df.loc[:, time_col]) # Time values.
 
     # Values of t where non-valid data occurs that is not "missing".
-    t_nonvalid = t[(np.isnan(data_valid)) & (data != missing_value)]
+    # t_nonvalid = t[(np.isnan(data_valid)) & (data != missing_value)]
+    t_nonvalid = t[(np.isnan(data_valid)) & (~np.isin(missing_value, data))]
 
     fig, ax = plt.subplots(figsize=(8,5))
     ax.plot(t, data_valid, 'b-+', label='Valid Data')
