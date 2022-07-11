@@ -64,6 +64,7 @@ def create_discharge_df(usgs_text):
 
 
 def resample_gage_data(gage_df, dt, gage_data_col_name):
+    # TODO: Make this a general resampling algorithm.
 
     # Convert datetime column to datetime object.
     gage_df['datetime'] = pd.to_datetime(gage_df['datetime'])
