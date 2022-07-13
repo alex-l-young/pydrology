@@ -15,7 +15,23 @@ from pydrology.data_requests import usgs_data
 # ======================================================
 # Functions.
 
-def resample_data(df, dt, data_col_name, time_col_name):
+def resample_data(df, dt, resample_col_names, time_col_name):
+    """
+    Upsample or downsample the hydrology data.
+    Upsampling uses linear interpolation to increase the number of samples.
+    Downsampling uses a windowed mean to compute the new data value.
+    :param df: Pandas Data Frame containing the hydrology data.
+    :param dt: New time step in minutes.
+    :param resample_col_names: Column names to resample.
+        If multiple columns, pass a list of strings.
+        If single column, pass a string.
+    :param time_col_name: Name of datetime column.
+    :return: Pandas DataFrame containing the resampled data.
+    """
+
+    # If there is a single resample column, make it a list.
+    if type(resample_col_names) == str:
+        resample_col_names = [resample_col_names]
 
     # Convert datetime column to datetime object.
     df[time_col_name] = pd.to_datetime(df[time_col_name])
@@ -34,41 +50,54 @@ def resample_data(df, dt, data_col_name, time_col_name):
         datetime_ar.append(cur_dt)
         cur_dt = cur_dt + timedelta(minutes=dt)
 
-    # Use a windowed average to downsample.
-    data_resamp = []
-    if dt_factor < 1:
-        for i, cur_ts in enumerate(datetime_ar):
-            # Windowed average.
-            data_pts = df.loc[(df.datetime >= cur_ts - timedelta(minutes=dt / 2))
-                              & (df.datetime <= cur_ts + timedelta(minutes=dt / 2)), data_col_name]
-            mean_val = np.mean(data_pts)
-            data_resamp.append(mean_val)
+    resampled_columns_dict = {}
+    for resample_col in resample_col_names:
+        # Use a windowed average to downsample.
+        data_resamp = []
+        if dt_factor < 1:
+            for i, cur_ts in enumerate(datetime_ar):
+                # Windowed average.
+                data_pts = df.loc[(df.datetime >= cur_ts - timedelta(minutes=dt / 2))
+                                  & (df.datetime <= cur_ts + timedelta(minutes=dt / 2)), resample_col]
+                mean_val = np.mean(data_pts)
+                data_resamp.append(mean_val)
 
-    # Linear interpolation to upsample.
-    else:
-        # Convert original data to Unix timesteps.
-        orig_unix_ts = (df[time_col_name] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
+        # Linear interpolation to upsample.
+        else:
+            # Convert original data to Unix timesteps.
+            orig_unix_ts = (df[time_col_name] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
 
-        # Convert interpolation time steps to unix.
-        new_unix_ts = (pd.to_datetime(datetime_ar) - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
+            # Convert interpolation time steps to unix.
+            new_unix_ts = (pd.to_datetime(datetime_ar) - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
 
-        # Linear interpolation function.
-        f = interpolate.interp1d(orig_unix_ts, df[data_col_name])
+            # Linear interpolation function.
+            f = interpolate.interp1d(orig_unix_ts, df[resample_col])
 
-        # Interpolate.
-        data_resamp = f(new_unix_ts)
+            # Interpolate.
+            data_resamp = f(new_unix_ts)
+
+        # Add resampled column data to dictionary.
+        resampled_columns_dict[resample_col] = data_resamp
 
 
     # Create a new dataframe with the resampled gage data.
-    resamp_df_data = {
-        "agency": np.repeat(df.loc[0, "agency"], len(data_resamp)),
-        "site_no": np.repeat(df.loc[0, "site_no"], len(data_resamp)),
-        "datetime": datetime_ar[:len(data_resamp)],
-        "tz_cd": np.repeat(df.loc[0, "tz_cd"], len(data_resamp)),
-        data_col_name: data_resamp,
-        "provis_accept": np.repeat(df.loc[0, "provis_accept"], len(data_resamp)),
-    }
-    resamp_df = pd.DataFrame(resamp_df_data)
+    dynamic_col_names = resample_col_names + [time_col_name]
+    static_col_names = [col for col in df.columns if col not in dynamic_col_names]
+    resample_df_data = {}
+
+    # Add any columns that weren't resampled back into data frame with constant, repeated value.
+    for static_col in static_col_names:
+        resample_df_data[static_col] = np.repeat(df.loc[0, static_col], len(datetime_ar))
+
+    # Add resampled data columns.
+    for resample_col in resample_col_names:
+        resample_df_data[resample_col] = resampled_columns_dict[resample_col]
+
+    # Add time column.
+    resample_df_data[time_col_name] = datetime_ar
+
+    # Make data frame.
+    resamp_df = pd.DataFrame(resample_df_data)
 
     return resamp_df
 
@@ -84,7 +113,7 @@ if __name__ == '__main__':
     print(gage_df.head())
     print(gage_df.tail())
 
-    resample_gage_df = resample_data(gage_df, 6, 'discharge', 'datetime')
+    resample_gage_df = resample_data(gage_df, 6, ['discharge'], 'datetime')
     print(resample_gage_df.head())
     print(resample_gage_df.tail())
 
