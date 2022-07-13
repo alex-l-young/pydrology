@@ -85,7 +85,7 @@ def resample_data(df, dt, resample_col_names, time_col_name):
     static_col_names = [col for col in df.columns if col not in dynamic_col_names]
     resample_df_data = {}
 
-    # Add any columns that weren't resampled back into data frame with constant, repeated value.
+    # Add any columns that weren't resampled back into data frame with a constant, repeated value.
     for static_col in static_col_names:
         resample_df_data[static_col] = np.repeat(df.loc[0, static_col], len(datetime_ar))
 
@@ -100,6 +100,7 @@ def resample_data(df, dt, resample_col_names, time_col_name):
     resamp_df = pd.DataFrame(resample_df_data)
 
     return resamp_df
+
 
 if __name__ == '__main__':
     gage_id = "12451000"
