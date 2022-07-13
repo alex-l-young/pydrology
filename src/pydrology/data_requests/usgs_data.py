@@ -63,59 +63,6 @@ def create_discharge_df(usgs_text):
     return df
 
 
-def resample_gage_data(gage_df, dt, gage_data_col_name):
-    # TODO: Make this a general resampling algorithm.
-
-    # Convert datetime column to datetime object.
-    gage_df['datetime'] = pd.to_datetime(gage_df['datetime'])
-
-    # Delta T of the data. Converted to minutes.
-    dt_data = (gage_df.loc[1, 'datetime'] - gage_df.loc[0, 'datetime']).total_seconds() / 60
-
-    # Resampling factor.
-    dt_factor = dt_data / dt
-
-    # Create the new datetime array.
-    cur_dt = gage_df.loc[0, 'datetime']
-    end_dt = gage_df.loc[gage_df.index[-1], 'datetime']
-    datetime_ar = []
-    while cur_dt <= end_dt:
-        datetime_ar.append(cur_dt)
-        cur_dt = cur_dt + timedelta(minutes=dt)
-
-    # Use trapezoidal integration to downsample.
-    gage_resamp = []
-    if dt_factor < 1:
-        for i in range(1, len(datetime_ar)):
-            prev_ts = datetime_ar[i-1]
-            cur_ts = datetime_ar[i]
-            # Collect time steps to integrate over.
-            # TODO: Could be made faster with sequential indexing isntead of searching for >= and <.
-            int_data = gage_df.loc[(gage_df.datetime >= prev_ts) & (gage_df.datetime < cur_ts), gage_data_col_name]
-
-            # Trapezoidal integration. Use seconds for the units of dx since discharge is in cfs.
-            cumu_gage = np.trapz(int_data, dx=dt_data * 60)
-            gage_resamp.append(cumu_gage)
-
-    # Linear interpolation to upsample.
-    else:
-        # TODO: Write upsampling code.
-        x = 1
-
-    # Create a new dataframe with the resampled gage data.
-    resamp_df_data = {
-        "agency": np.repeat(gage_df.loc[0, "agency"], len(gage_resamp)),
-        "site_no": np.repeat(gage_df.loc[0, "site_no"], len(gage_resamp)),
-        "datetime": datetime_ar[:len(gage_resamp)],
-        "tz_cd": np.repeat(gage_df.loc[0, "tz_cd"], len(gage_resamp)),
-        gage_data_col_name: gage_resamp,
-        "provis_accept": np.repeat(gage_df.loc[0, "provis_accept"], len(gage_resamp)),
-    }
-    gage_resamp_df = pd.DataFrame(resamp_df_data)
-
-    return gage_resamp_df
-
-
 if __name__ == '__main__':
     gage_id = "12451000"
     start_date = "2022-05-24"
