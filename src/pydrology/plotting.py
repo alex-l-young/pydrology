@@ -123,7 +123,6 @@ if __name__ == '__main__':
     # plot_data_timeseries(df, 'a', 'b', missing_value='M')
 
     from pydrology.data_request_scripts import usgs_data
-    from pydrology.plotting import plotting
 
     # Parameters for the request.
     # ---------------------------
