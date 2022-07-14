@@ -8,6 +8,7 @@ import pandas as pd
 from datetime import timedelta
 import matplotlib.pyplot as plt
 from scipy import interpolate
+import traces
 
 # Local imports.
 from pydrology.data_request_scripts import usgs_data
@@ -15,7 +16,7 @@ from pydrology.data_request_scripts import usgs_data
 # ======================================================
 # Functions.
 
-def resample_data(df, dt, resample_col_names, time_col_name):
+def resample_data_old(df, dt, resample_col_names, time_col_name):
     """
     Upsample or downsample the hydrology data.
     Upsampling uses linear interpolation to increase the number of samples.
@@ -116,6 +117,99 @@ def interpolate_time_series(df, data_column, method='linear'):
     return df
 
 
+def standardize_datetime(df, time_column, data_columns, dt):
+    # If passing a single column name, make into a list.
+    if type(data_columns) == str:
+        data_columns = [data_columns]
+
+    # Get the first and last time steps.
+    start_ts = df.loc[0, time_column]
+    end_ts = df.loc[df.index[-1], time_column]
+
+    # Standard list of time steps with equal dt spacing.
+    standard_times = []
+    cur_ts = start_ts
+    while cur_ts <= end_ts:
+        standard_times.append(cur_ts)
+        cur_ts = cur_ts + timedelta(minutes=dt)
+    standard_times = pd.Series(standard_times, name=time_column)
+
+    # Add nan values in the row if df is missing the time step.
+    df_standard = df.merge(standard_times.to_frame(), on=time_column, how='right')
+
+    # Populate static columns with constant fill values.
+    dynamic_columns = data_columns + [time_column]
+    static_columns = [col for col in df.columns if col not in dynamic_columns]
+
+    for static_column in static_columns:
+        df_standard[static_column] = df_standard[static_column].ffill()
+        df_standard[static_column] = df_standard[static_column].bfill()
+
+    return df_standard
+
+
+def resample_data(df, time_column, data_columns, dt):
+
+    # If passing a single column name, make into a list.
+    if type(data_columns) == str:
+        data_columns = [data_columns]
+
+    # Get the first and last time steps.
+    start_ts = df.loc[0, time_column]
+    end_ts = df.loc[df.index[-1], time_column]
+
+    regularize_data = {}
+    # Regularize each data column.
+    for data_column in data_columns:
+
+        # Create list of tuples for interpolation by traces.
+        ts_list = []
+        for row in range(df.shape[0]):
+            timestep = df.loc[row, time_column]
+            data = df.loc[row, data_column]
+
+            ts_list.append((timestep, data))
+
+        # Create traces time series.
+        ts = traces.TimeSeries(ts_list)
+
+        # Regularize with sample method.
+        regz_data_time = ts.sample(
+            sampling_period=timedelta(minutes=dt),
+            start=start_ts,
+            end=end_ts,
+            interpolate='linear',
+        )
+
+        # Add to regularized data dictionary.
+        regz_data = [i[1] for i in regz_data_time]
+        regularize_data[data_column] = regz_data
+
+    # Create a new dataframe with the resampled gage data.
+    datetime_ar = [i[0] for i in regz_data_time]
+    dynamic_col_names = data_columns + [time_column]
+    static_col_names = [col for col in df.columns if col not in dynamic_col_names]
+    resample_df_data = {}
+
+    # Add any columns that weren't resampled back into data frame with a constant, repeated value.
+    for static_col in static_col_names:
+        resample_df_data[static_col] = np.repeat(df.loc[0, static_col], len(datetime_ar))
+
+    # Add resampled data columns.
+    for resample_col in data_columns:
+        resample_df_data[resample_col] = regularize_data[resample_col]
+
+    # Add time column.
+    resample_df_data[time_column] = datetime_ar
+
+    # Make data frame.
+    resamp_df = pd.DataFrame(resample_df_data)
+
+    return resamp_df
+
+
+
+
 if __name__ == '__main__':
     gage_id = "12451000"
     start_date = "2022-05-24"
@@ -128,7 +222,7 @@ if __name__ == '__main__':
     print(gage_df.head())
     print(gage_df.tail())
 
-    resample_gage_df = resample_data(gage_df, 6, ['discharge'], 'datetime')
+    resample_gage_df = resample_data(gage_df, 60, ['discharge'], 'datetime')
     print(resample_gage_df.head())
     print(resample_gage_df.tail())
 
