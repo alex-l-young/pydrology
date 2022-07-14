@@ -122,6 +122,9 @@ def standardize_datetime(df, time_column, data_columns, dt):
     if type(data_columns) == str:
         data_columns = [data_columns]
 
+    # Convert datetime column to datetime object.
+    df[time_column] = pd.to_datetime(df[time_column])
+
     # Get the first and last time steps.
     start_ts = df.loc[0, time_column]
     end_ts = df.loc[df.index[-1], time_column]
@@ -153,6 +156,9 @@ def resample_data(df, time_column, data_columns, dt):
     # If passing a single column name, make into a list.
     if type(data_columns) == str:
         data_columns = [data_columns]
+
+    # Convert datetime column to datetime object.
+    df[time_column] = pd.to_datetime(df[time_column])
 
     # Get the first and last time steps.
     start_ts = df.loc[0, time_column]
