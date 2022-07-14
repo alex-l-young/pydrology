@@ -7,7 +7,7 @@ import pandas as pd
 
 # Local imports.
 from pydrology.data_requests import request_usgs_data
-from pydrology.time_series.analysis import resample_data
+from pydrology.time_series import resample_data
 
 class TestClassUsgs:
     def setup(self):
