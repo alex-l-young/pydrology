@@ -29,4 +29,3 @@ c:\pydrology> pip install .
 ## To-Do
 
 1. Build out a module for basic statistics and plotting that can be done on the hydrology data. 
-4. Linear interpolation of time series data.
