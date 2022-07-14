@@ -11,11 +11,11 @@ from scipy import interpolate
 import traces
 
 # Local imports.
-from pydrology.data_request_scripts import usgs_data
+from pydrology.data_requests import request_usgs_data
 
 # ======================================================
 # Functions.
-def interpolate_time_series(df, data_column, method='linear'):
+def interpolate_time_series(df, data_columns, method='linear'):
     """
     Interpolation of Data Frame columns using Pandas interpolation routine.
     :param df: Data Frame containing data to interpolate.
@@ -23,8 +23,13 @@ def interpolate_time_series(df, data_column, method='linear'):
     :param method: Interpolation method. Assumes equally-spaced data.
     :return: Data Frame with column interpolated.
     """
+    if type(data_columns) == str:
+        data_columns = [data_columns]
 
-    df[data_column] = df[data_column].interpolate(method=method, limit_direction='both')
+    for data_column in data_columns:
+        # Convert data column to float.
+        df[data_column] = pd.to_numeric(df[data_column], errors='coerce')
+        df[data_column] = df[data_column].interpolate(method=method, limit_direction='both')
 
     return df
 
@@ -100,6 +105,8 @@ def resample_data(df, time_column, data_columns, dt):
     regularize_data = {}
     # Regularize each data column.
     for data_column in data_columns:
+        # Convert data column to float.
+        df[data_column] = pd.to_numeric(df[data_column], errors='coerce')
 
         # Create list of tuples for interpolation by traces.
         ts_list = []
@@ -155,7 +162,7 @@ if __name__ == '__main__':
     end_time = "17:00:00.000"
     gmt_offset = "-05:00"
 
-    gage_df = usgs_data.download_usgs_gage_data(gage_id, start_date, start_time, end_date, end_time, gmt_offset)
+    gage_df = request_usgs_data(gage_id, start_date, start_time, end_date, end_time, gmt_offset)
     print(gage_df.head())
     print(gage_df.tail())
 
