@@ -102,6 +102,20 @@ def resample_data(df, dt, resample_col_names, time_col_name):
     return resamp_df
 
 
+def interpolate_time_series(df, data_column, method='linear'):
+    """
+    Interpolation of Data Frame columns using Pandas interpolation routine.
+    :param df: Data Frame containing data to interpolate.
+    :param data_column: Column name to interpolate.
+    :param method: Interpolation method. Assumes equally-spaced data.
+    :return: Data Frame with column interpolated.
+    """
+
+    df[data_column] = df[data_column].interpolate(method=method, limit_direction='both')
+
+    return df
+
+
 if __name__ == '__main__':
     gage_id = "12451000"
     start_date = "2022-05-24"
@@ -117,6 +131,12 @@ if __name__ == '__main__':
     resample_gage_df = resample_data(gage_df, 6, ['discharge'], 'datetime')
     print(resample_gage_df.head())
     print(resample_gage_df.tail())
+
+    # Interpolation.
+    resample_gage_df.loc[1, 'discharge'] = np.nan
+    print(resample_gage_df.head())
+    resample_gage_df = interpolate_time_series(resample_gage_df, 'discharge')
+    print(resample_gage_df.head())
 
     fig, ax = plt.subplots()
     ax.plot(gage_df.datetime, gage_df.discharge, 'b-o')
