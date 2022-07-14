@@ -1,12 +1,12 @@
 # ====================================================================================================
-# Test script for pydrology/data_requests/usgs_data.py
+# Test script for pydrology/data_request_scripts/usgs_data.py
 # ====================================================================================================
 
 # Library imports.
 import pandas as pd
 
 # Local imports.
-from pydrology.data_requests.acis_data import request_acis_data
+from pydrology.data_requests import request_acis_data
 
 class TestClassAcis:
     def setup(self):

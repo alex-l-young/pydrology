@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 
 # Local imports.
-from pydrology.data_requests import usgs_data
+from pydrology.data_request_scripts import usgs_data
 
 # ======================================================
 # Functions.

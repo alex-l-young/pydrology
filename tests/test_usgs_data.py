@@ -1,12 +1,13 @@
 # ====================================================================================================
-# Test script for pydrology/data_requests/usgs_data.py
+# Test script for pydrology/data_request_scripts/usgs_data.py
 # ====================================================================================================
 
 # Library imports.
 import pandas as pd
 
 # Local imports.
-from pydrology.data_requests.usgs_data import download_usgs_gage_data, resample_gage_data
+from pydrology.data_requests import request_usgs_data
+from pydrology.time_series.analysis import resample_data
 
 class TestClassUsgs:
     def setup(self):
@@ -20,7 +21,7 @@ class TestClassUsgs:
 
 
     def test_usgs_request_to_dataframe(self):
-        gage_df = download_usgs_gage_data(
+        gage_df = request_usgs_data(
             self.gage_id,
             self.start_date,
             self.start_time,
@@ -43,7 +44,7 @@ class TestClassUsgs:
 
     def test_resample_gage_data_downsample(self):
         # Create gage DataFrame.
-        gage_df = download_usgs_gage_data(
+        gage_df = request_usgs_data(
             self.gage_id,
             self.start_date,
             self.start_time,
@@ -53,7 +54,7 @@ class TestClassUsgs:
         )
 
         # Downsample to hourly.
-        resample_gage_df = resample_gage_data(gage_df, 60, 'discharge')
+        resample_gage_df = resample_data(gage_df, 60, 'discharge', 'datetime')
 
         # List of assertion errors.
         errors = []
