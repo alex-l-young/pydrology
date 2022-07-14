@@ -63,7 +63,7 @@ def plot_data_timeseries(df, data_col, time_col, missing_value='M'):
 
     # Plot missing data as red vertical lines.
     if np.isin(missing_value, data):
-        t_missing = t[np.isin(missing_value, data)]
+        t_missing = t[np.squeeze(np.argwhere(data == missing_value))]
 
         for i, m in enumerate(t_missing):
             if i == 0:
