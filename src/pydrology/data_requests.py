@@ -8,6 +8,14 @@ import numpy as np
 import requests
 import os
 from io import StringIO
+import netCDF4 as nc4
+import nexradaws
+import six
+from metpy.io import Level2File
+from datetime import datetime
+import cftime
+import time
+import re
 
 # =======================================================
 # NOAA SC-ACIS Meteorology.
@@ -144,7 +152,7 @@ def request_usgs_data(gage_id, parameter, start_date, start_time, end_date, end_
     return gage_df
 
 
-def create_discharge_df(usgs_text, parameter):
+def create_discharge_df(usgs_text: str, parameter: str) -> pd.DataFrame:
     cols = ['agency', 'site_no', 'datetime', 'tz_cd', parameter, 'provis_accept']
     skiprows = 25
 
@@ -165,3 +173,192 @@ def create_discharge_df(usgs_text, parameter):
             pass
 
     return df
+
+# =======================================================
+# NEXRAD Doppler Data.
+# =======================================================
+def request_nexrad_data(site, date, output_directory):
+    """
+
+    :param site: NEXRAD call code. E.g., "KBGM"
+    :param date: Date of request. "YYYY-MM-DD"
+    :param output_directory: Directory in which to output the scans.
+    :return:
+    """
+    # Split the date into year, month, and day.
+    date_split = date.split('-')
+    year, month, day = (date_split[0], date_split[1], date_split[2])
+
+    conn = nexradaws.NexradAwsInterface()
+    scans = conn.get_avail_scans(year, month, day, site)
+
+    # Sort scans by date.
+    times = []
+    for scan in scans:
+        scan_str = str(scan)
+        scan_split = scan_str.split('_')
+
+        # Don't process MDM files.
+        if 'MDM' not in scan_split[-1]:
+            time = scan_split[-2]
+            times.append(int(time))
+        else:
+            continue
+
+    scan_and_date = zip(scans,times)
+    scan_sort = [item[0] for item in sorted(scan_and_date, key=lambda x: x[1])]
+
+    # Save all nexrad scans.
+    output_files = []
+    for scan in scan_sort[:50]:
+        file_name = str(scan).split('/')[-1][:-1]
+        output_file = os.path.join(output_directory, file_name)
+        output_files.append(os.path.join(output_file, file_name))
+
+        localfiles = conn.download(scan, output_file)
+        six.print_(localfiles.success)
+        six.print_(localfiles.success[0].filepath)
+
+    return output_files
+
+
+def nexrad_sweep_to_array(nexrad_filepath):
+    """
+    Extract sweep from nexrad and output at REF and RHO with x and y coordinates.
+    :param nexrad_filepath: Path to NEXRAD file.
+    :return: Dictionary containing data. Keys: REF_DATA, REF_X, REF_Y, RHO_DATA, RHO_X, RHO_Y.
+    """
+
+    # Load the file.
+    f = Level2File(nexrad_filepath)
+
+    # Pull data out of the file
+    sweep = 0
+
+    # First item in ray is header, which has azimuth angle
+    az = np.array([ray[0].az_angle for ray in f.sweeps[sweep]])
+
+    # 5th item is a dict mapping a var name (byte string) to a tuple
+    # of (header, data array)
+    ref_hdr = f.sweeps[sweep][0][4][b'REF'][0]
+    ref_range = np.arange(ref_hdr.num_gates) * ref_hdr.gate_width + ref_hdr.first_gate
+    ref = np.array([ray[4][b'REF'][1] for ray in f.sweeps[sweep]])
+
+    # Process data into array.
+    ref_array = np.ma.array(ref)
+    ref_array[np.isnan(ref_array)] = np.ma.masked
+    ref_xlocs = ref_range * np.sin(np.deg2rad(az[:, np.newaxis]))
+    ref_ylocs = ref_range * np.cos(np.deg2rad(az[:, np.newaxis]))
+
+    # rho_hdr = f.sweeps[sweep][0][4][b'RHO'][0]
+    # rho_range = (np.arange(rho_hdr.num_gates + 1) - 0.5) * rho_hdr.gate_width + rho_hdr.first_gate
+    # rho = np.array([ray[4][b'RHO'][1] for ray in f.sweeps[sweep]])
+    #
+    # # Process data into array.
+    # rho_array = np.ma.array(rho)
+    # rho_array[np.isnan(rho_array)] = np.ma.masked
+    # rho_xlocs = rho_range * np.sin(np.deg2rad(az[:, np.newaxis]))
+    # rho_ylocs = rho_range * np.cos(np.deg2rad(az[:, np.newaxis]))
+
+    # Data dictionary.
+    nexrad_output = {
+        'REF_DATA': ref_array,
+        'REF_X': ref_xlocs,
+        'REF_Y': ref_ylocs,
+        # 'RHO_DATA': rho_array,
+        # 'RHO_X': rho_xlocs,
+        # 'RHO_Y': rho_ylocs,
+    }
+
+    return nexrad_output
+
+
+def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site):
+
+    # Load data from first nexrad file for netcdf population.
+    nexdata = nexrad_sweep_to_array(nexrad_scan_files[0])
+    N_time = len(nexrad_scan_files)
+    N_ref_lat = nexdata['REF_Y'].shape[0]
+    N_ref_lon = nexdata['REF_X'].shape[1]
+    # N_rho_lat = nexdata['RHO_Y'].shape[0]
+    # N_rho_lon = nexdata['RHO_X'].shape[1]
+
+    # Create netcdf shell.
+    nc_fname = f'NEXRAD_{site}_{date}.nc'
+    rootgrp = nc4.Dataset(os.path.join(output_directory, nc_fname), "w", format="NETCDF4")
+
+    # Create dimensions in root group.
+    time = rootgrp.createDimension("time", N_time)
+    ref_lat = rootgrp.createDimension("refLat", N_ref_lat)
+    ref_lon = rootgrp.createDimension("refLon", N_ref_lon)
+    # rho_lat = rootgrp.createDimension("rhoLat", N_rho_lat)
+    # rho_lon = rootgrp.createDimension("rhoLon", N_rho_lon)
+
+    # Create variables.
+    times = rootgrp.createVariable("time", "f8", ("time",))
+    ref_latitudes = rootgrp.createVariable("refLat", "f4", ("refLat","refLon",))
+    ref_longitudes = rootgrp.createVariable("refLon", "f4", ("refLat","refLon",))
+    # rho_latitudes = rootgrp.createVariable("rhoLat", "f4", ("rhoLat", "rhoLon",))
+    # rho_longitudes = rootgrp.createVariable("rhoLon", "f4", ("rhoLat", "rhoLon",))
+    ref_data = rootgrp.createVariable("ref", "f4", ("time", "refLat", "refLon",))
+    # rho_data = rootgrp.createVariable("rho", "f4", ("time", "rhoLat", "rhoLon",))
+
+    nexrad_times = []
+    ref_array = np.zeros((N_time, N_ref_lat, N_ref_lon))
+    # rho_array = np.zeros((N_time, N_rho_lat, N_rho_lon))
+    for i, file in enumerate(nexrad_scan_files):
+        print(f'Processing file: {file}')
+
+        # File datetime.
+        file_dt = nexrad_datetime(file)
+        nexrad_times.append(file_dt)
+
+        # Data dictionary from sweep.
+        data = nexrad_sweep_to_array(file)
+        ref_array[i,:,:] = data['REF_DATA']
+        # rho_array[i,:,:] = data['RHO_DATA']
+
+    # Populate netcdf file.
+    ref_latitudes[:] = nexdata['REF_Y']
+    ref_longitudes[:] = nexdata['REF_X']
+    # rho_latitudes[:] = nexdata['RHO_Y']
+    # rho_longitudes[:] = nexdata['RHO_X']
+    # times[:] = cftime.date2num(nexrad_times,units=times.units,calendar=times.calendar)
+    times[:] = nexrad_times
+    ref_data[:] = ref_array
+    # rho_data[:] = rho_array
+
+    # Close file.
+    rootgrp.close()
+
+    print(f'Created file: {nc_fname}')
+
+
+def nexrad_datetime(filename:str) -> float:
+    """
+    Create a datetime object from NEXRAD filename.
+    :param filename: NEXRAD filename.
+    :return: Datetime object.
+    """
+    # File basename.
+    basename = os.path.basename(filename)
+
+    # Extract the datetime info from the basename.
+    date_search = re.findall(r'(\d.*)_', basename)
+    date_match = date_search[0]
+
+    # Create datetime object.
+    dt = datetime.strptime(date_match, "%Y%m%d_%H%M%S")
+    unixtime = time.mktime(dt.timetuple())
+
+    return unixtime
+
+
+if __name__ == '__main__':
+    site = 'KBGM'
+    date = '2022-07-25'
+    output_directory = '/Users/alexyoung/Desktop/NEXRAD_Output'
+    output_files = request_nexrad_data(site, date, output_directory)
+    print(output_files)
+
+    nexrad_to_netcdf(output_files, output_directory, date, site)
