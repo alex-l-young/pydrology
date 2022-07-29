@@ -210,7 +210,7 @@ def request_nexrad_data(site, date, output_directory):
 
     # Save all nexrad scans.
     output_files = []
-    for scan in scan_sort[:50]:
+    for scan in scan_sort[:3]:
         file_name = str(scan).split('/')[-1][:-1]
         output_file = os.path.join(output_directory, file_name)
         output_files.append(os.path.join(output_file, file_name))
@@ -296,6 +296,8 @@ def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site):
 
     # Create variables.
     times = rootgrp.createVariable("time", "f8", ("time",))
+    times.units = "hours since 0001-01-01 00:00:00.0"
+    times.calendar = "gregorian"
     ref_latitudes = rootgrp.createVariable("refLat", "f4", ("refLat","refLon",))
     ref_longitudes = rootgrp.createVariable("refLon", "f4", ("refLat","refLon",))
     # rho_latitudes = rootgrp.createVariable("rhoLat", "f4", ("rhoLat", "rhoLon",))
@@ -323,8 +325,7 @@ def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site):
     ref_longitudes[:] = nexdata['REF_X']
     # rho_latitudes[:] = nexdata['RHO_Y']
     # rho_longitudes[:] = nexdata['RHO_X']
-    # times[:] = cftime.date2num(nexrad_times,units=times.units,calendar=times.calendar)
-    times[:] = nexrad_times
+    times[:] = cftime.date2num(nexrad_times,units=times.units,calendar=times.calendar)
     ref_data[:] = ref_array
     # rho_data[:] = rho_array
 
@@ -334,7 +335,7 @@ def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site):
     print(f'Created file: {nc_fname}')
 
 
-def nexrad_datetime(filename:str) -> float:
+def nexrad_datetime(filename:str) -> datetime:
     """
     Create a datetime object from NEXRAD filename.
     :param filename: NEXRAD filename.
@@ -349,9 +350,8 @@ def nexrad_datetime(filename:str) -> float:
 
     # Create datetime object.
     dt = datetime.strptime(date_match, "%Y%m%d_%H%M%S")
-    unixtime = time.mktime(dt.timetuple())
 
-    return unixtime
+    return dt
 
 
 if __name__ == '__main__':
