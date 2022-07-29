@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import requests
 import os
+from pathlib import Path
 from io import StringIO
 import netCDF4 as nc4
 import nexradaws
@@ -14,7 +15,6 @@ import six
 from metpy.io import Level2File
 from datetime import datetime
 import cftime
-import time
 import re
 
 # =======================================================
@@ -191,6 +191,7 @@ def request_nexrad_data(site, date, output_directory):
 
     conn = nexradaws.NexradAwsInterface()
     scans = conn.get_avail_scans(year, month, day, site)
+    print(f'Found {len(scans)} scans for this date...', '\n')
 
     # Sort scans by date.
     times = []
@@ -273,7 +274,15 @@ def nexrad_sweep_to_array(nexrad_filepath):
     return nexrad_output
 
 
-def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site):
+def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site) -> str:
+    """
+    Converts a list of output nexrad files to a single netcdf file.
+    :param nexrad_scan_files: List of file paths to add to the netcdf file.
+    :param output_directory: Directory in which to save the netcdf file.
+    :param date: Day of scan files.
+    :param site: NEXRAD location code.
+    :return: Path to newly created netcdf file.
+    """
 
     # Load data from first nexrad file for netcdf population.
     nexdata = nexrad_sweep_to_array(nexrad_scan_files[0])
@@ -333,6 +342,9 @@ def nexrad_to_netcdf(nexrad_scan_files, output_directory, date, site):
     rootgrp.close()
 
     print(f'Created file: {nc_fname}')
+    nc_path = output_directory / nc_fname
+
+    return nc_path
 
 
 def nexrad_datetime(filename:str) -> datetime:
