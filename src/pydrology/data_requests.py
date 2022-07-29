@@ -211,7 +211,7 @@ def request_nexrad_data(site, date, output_directory):
 
     # Save all nexrad scans.
     output_files = []
-    for scan in scan_sort[:3]:
+    for scan in scan_sort:
         file_name = str(scan).split('/')[-1][:-1]
         output_file = os.path.join(output_directory, file_name)
         output_files.append(os.path.join(output_file, file_name))
