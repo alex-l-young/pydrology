@@ -222,10 +222,10 @@ def request_nexrad_data(site, date, output_directory):
         output_file = os.path.join(output_directory, file_name)
         output_files.append(os.path.join(output_file, file_name))
 
-        # localfiles = conn.download(scan, output_file)
-        # six.print_(localfiles.success)
-        # six.print_(localfiles.success[0].filepath)
-        create_download_thread(scan, output_file)
+        localfiles = conn.download(scan, output_file)
+        six.print_(localfiles.success)
+        six.print_(localfiles.success[0].filepath)
+        # create_download_thread(scan, output_file)
 
     return output_files
 
