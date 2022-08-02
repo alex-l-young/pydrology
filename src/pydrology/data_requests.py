@@ -197,7 +197,7 @@ def request_nexrad_data(site, date, output_directory):
     # Sort scans by date.
     times = []
     scans_to_download = []
-    for scan in scans[:10]:
+    for scan in scans:
         scan_str = str(scan)
         scan_split = scan_str.split('_')
 
