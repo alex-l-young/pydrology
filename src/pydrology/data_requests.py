@@ -16,6 +16,7 @@ from metpy.io import Level2File
 from datetime import datetime
 import cftime
 import re
+import threading
 
 # =======================================================
 # NOAA SC-ACIS Meteorology.
@@ -195,7 +196,8 @@ def request_nexrad_data(site, date, output_directory):
 
     # Sort scans by date.
     times = []
-    for scan in scans:
+    scans_to_download = []
+    for scan in scans[:10]:
         scan_str = str(scan)
         scan_split = scan_str.split('_')
 
@@ -203,25 +205,43 @@ def request_nexrad_data(site, date, output_directory):
         if 'MDM' not in scan_split[-1]:
             time = scan_split[-2]
             times.append(int(time))
+            scans_to_download.append(scan)
         else:
             continue
 
-    scan_and_date = zip(scans,times)
+    scan_and_date = zip(scans_to_download,times)
     scan_sort = [item[0] for item in sorted(scan_and_date, key=lambda x: x[1])]
 
     # Save all nexrad scans.
     output_files = []
+    c = 1
     for scan in scan_sort:
+        print(f'SCAN {c}')
+        c += 1
         file_name = str(scan).split('/')[-1][:-1]
         output_file = os.path.join(output_directory, file_name)
         output_files.append(os.path.join(output_file, file_name))
 
-        localfiles = conn.download(scan, output_file)
-        six.print_(localfiles.success)
-        six.print_(localfiles.success[0].filepath)
+        # localfiles = conn.download(scan, output_file)
+        # six.print_(localfiles.success)
+        # six.print_(localfiles.success[0].filepath)
+        create_download_thread(scan, output_file)
 
     return output_files
 
+
+def download_nexrad(scan, output_file):
+    conn = nexradaws.NexradAwsInterface()
+    localfiles = conn.download(scan, output_file)
+    six.print_(localfiles.success)
+    six.print_(localfiles.success[0].filepath)
+
+    return localfiles
+
+
+def create_download_thread(scan, output_file):
+    download_thread = threading.Thread(target=download_nexrad, args=(scan, output_file))
+    download_thread.start()
 
 def nexrad_sweep_to_array(nexrad_filepath):
     """
@@ -369,8 +389,10 @@ def nexrad_datetime(filename:str) -> datetime:
 if __name__ == '__main__':
     site = 'KBGM'
     date = '2022-07-25'
-    output_directory = '/Users/alexyoung/Desktop/NEXRAD_Output'
+    output_directory = Path.home() / 'Desktop' / 'NEXRAD_Output'
     output_files = request_nexrad_data(site, date, output_directory)
     print(output_files)
-
+    # output_files = ['/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_000141_V06/KBGM20220725_000141_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_000711_V06/KBGM20220725_000711_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_001241_V06/KBGM20220725_001241_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_001812_V06/KBGM20220725_001812_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_002342_V06/KBGM20220725_002342_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_002914_V06/KBGM20220725_002914_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_003458_V06/KBGM20220725_003458_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_004042_V06/KBGM20220725_004042_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_004639_V06/KBGM20220725_004639_V06', '/Users/alexyoung/Desktop/NEXRAD_Output/KBGM20220725_005224_V06/KBGM20220725_005224_V06']
+    #
+    #
     nexrad_to_netcdf(output_files, output_directory, date, site)
