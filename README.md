@@ -5,11 +5,14 @@ A Python package for accessing and processing hydrologic data.
 To install pydrology, run the following within a virtual environment of choice.
 
 ```
-c:\> git clone https://github.com/alex-l-young/pydrology
+c:\> pip install pydrology
+```
 
-c:\> cd pydrology
+If you want to work on developing Pydrology, you can clone the repository directly from GitHub.
+You can also download the example Jupyter Notebooks directly.
 
-c:\pydrology> pip install .
+```
+c:\>git clone https://github.com/alex-l-young/pydrology.git
 ```
 
 ## Currently supported data sources
