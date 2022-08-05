@@ -13,6 +13,7 @@ class TestClassUsgs:
     def setup(self):
         # Test case parameters.
         self.gage_id = "04234000"
+        self.parameter = "discharge"
         self.start_date = "2022-05-24"
         self.start_time = "13:00:00.000"
         self.end_date = "2022-05-26"
@@ -23,6 +24,7 @@ class TestClassUsgs:
     def test_usgs_request_to_dataframe(self):
         gage_df = request_usgs_data(
             self.gage_id,
+            self.parameter,
             self.start_date,
             self.start_time,
             self.end_date,
@@ -46,6 +48,7 @@ class TestClassUsgs:
         # Create gage DataFrame.
         gage_df = request_usgs_data(
             self.gage_id,
+            self.parameter,
             self.start_date,
             self.start_time,
             self.end_date,
@@ -54,7 +57,7 @@ class TestClassUsgs:
         )
 
         # Downsample to hourly.
-        resample_gage_df = resample_data(gage_df, 60, 'discharge', 'datetime')
+        resample_gage_df = resample_data(gage_df, 'datetime', self.parameter, 60)
 
         # List of assertion errors.
         errors = []
