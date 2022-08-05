@@ -20,13 +20,16 @@ var/
 
 # Unit test / coverage reports
 .tox/
+tox.ini
 .coverage
 .cache
 nosetests.xml
 coverage.xml
+.pytest_cache/
 
 # Pycharm.
 **/.idea/
 
 # Jupyter.
 **/.ipynb_checkpoints/
+tox.ini
