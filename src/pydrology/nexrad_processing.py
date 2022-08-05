@@ -181,11 +181,11 @@ def parse_arguments():
     Npool = int(args.pool)
     date = args.date
     site = args.site
-    dir = Path(args.dir)
+    dir = Path(args.dir) / date
 
     # Get the files to be processed.
     ld = dir.glob('**/*')
-    output_files = [dir / date / f.name for f in ld if str(f)[-3:] == 'V06']
+    output_files = [dir / f.name for f in ld if str(f)[-3:] == 'V06']
 
     parsed_args = {
         'Npool': Npool,
