@@ -12,7 +12,7 @@ If you want to work on developing Pydrology, you can clone the repository direct
 You can also download the example Jupyter Notebooks directly.
 
 ```
-c:\>git clone https://github.com/alex-l-young/pydrology.git
+c:\> git clone https://github.com/alex-l-young/pydrology.git
 ```
 
 ## Currently supported data sources
