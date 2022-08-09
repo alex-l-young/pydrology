@@ -101,6 +101,10 @@ def plot_data_timeseries(df, data_col, time_col, missing_value='M'):
 
     plt.show()
 
+
+# def plot_nexrad_sweep(nexrad_nc):
+
+
 if __name__ == '__main__':
     # data = {
     #     'a': [1, 8, 7, 4, 'M', 'M', 5, 4, 'T'],
