@@ -110,9 +110,8 @@ def parse_arguments():
     site = args.site
     date = args.date
     threads = int(args.threads)
-    output_dir = dir / date
 
-    parsed_args = [output_dir, date, site, threads]
+    parsed_args = [dir, date, site, threads]
 
     return parsed_args
 
