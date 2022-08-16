@@ -1,7 +1,7 @@
 # Configuration file for NEXRAD processing.
 
-# Directory containing NEXRAD file day sub-directories.
-nexrad_directory: ~/Desktop/NEXRAD_Output
+# Directory containing NEXRAD file day sub-directories. Requires absolute path.
+nexrad_directory: C:/.../NEXRAD_Output
 
 # Number of processors to use in multiprocessing.
 npool: 10
