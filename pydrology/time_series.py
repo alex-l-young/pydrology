@@ -11,7 +11,7 @@ from scipy import interpolate
 import traces
 
 # Local imports.
-from pydrology.data_requests import request_usgs_data
+from pydrology.usgs.usgs_request import request_usgs_data
 
 # ======================================================
 # Functions.

@@ -6,7 +6,7 @@
 import pandas as pd
 
 # Local imports.
-from pydrology.data_requests import request_acis_data
+from pydrology.acis.acis_request import request_acis_data
 
 class TestClassAcis:
     def setup(self):

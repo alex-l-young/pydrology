@@ -1,5 +1,5 @@
 # =======================================================
-# Data request functions.
+# NOAA SC-ACIS Meteorology.
 # =======================================================
 
 # Library imports.
@@ -7,21 +7,7 @@ import pandas as pd
 import numpy as np
 import requests
 import os
-from pathlib import Path
-from io import StringIO
-import netCDF4 as nc4
-import nexradaws
-import six
-from metpy.io import Level2File
-from datetime import datetime
-import cftime
-import re
-import threading
-import queue
 
-# =======================================================
-# NOAA SC-ACIS Meteorology.
-# =======================================================
 def request_acis_data(met_elements, site_id, start_date, end_date):
     """
     Request meteorology data from NOAA's ACIS. Data is daily and the following meteorology variables can be requested.
@@ -118,60 +104,3 @@ def acis_to_csv(acis_df, csv_dir):
 
     acis_df.to_csv(os.path.join(csv_dir, df_fname), index=False)
 
-
-# =======================================================
-# USGS Stream Gage Data.
-# =======================================================
-def request_usgs_data(gage_id, parameter, start_date, start_time, end_date, end_time, gmt_offset):
-    """
-
-    :param gage_id [string]: ID of gage to request data for.
-    :param start_date [string]: Start date in format yyyy-mm-dd. "2022-06-24"
-    :param start_time [string]: Local start time in format HH:MM:SS.mmm. "11:17:05.203"
-    :param end_date [string]: End date in format yyyy-mm-dd.
-    :param end_time [string]: Local end time in format HH:MM:SS.mmm
-    :param gmt_offset [string]: Number of hour offset from gmt (+ or -) in format +/-HH:MM. "-04:00"
-    :param parameter [string]: 'discharge' or 'height'
-    :return:
-    """
-    # Convert parameter name to the code.
-    if parameter == 'discharge':
-        code = '00060'
-    else:
-        code = '00065'
-
-    # Populate the request URL with ID and dates.
-    usgs_url_format = ("https://waterservices.usgs.gov/nwis/iv/?sites={}&parameterCd={}&"
-                       "startDT={}T{}{}&endDT={}T{}{}&"
-                       "siteStatus=all&format=rdb")
-    usgs_url = usgs_url_format.format(gage_id, code, start_date, start_time, gmt_offset, end_date, end_time, gmt_offset)
-
-    r = requests.get(usgs_url)
-    r_text = r.text
-
-    gage_df = create_discharge_df(r_text, parameter)
-
-    return gage_df
-
-
-def create_discharge_df(usgs_text: str, parameter: str) -> pd.DataFrame:
-    cols = ['agency', 'site_no', 'datetime', 'tz_cd', parameter, 'provis_accept']
-    skiprows = 25
-
-    # Keep incrementing the number of rows to skip until the correct number is reached.
-    while True:
-        try:
-            df = pd.read_csv(StringIO(usgs_text), header=None, sep='\t', skiprows=skiprows)
-            df.columns = cols
-
-            # There are two rows of headers that also need to be skipped.
-            if df.loc[0, 'agency'] != 'USGS':
-                skiprows += 1
-                continue
-
-            break
-        except:
-            skiprows += 1
-            pass
-
-    return df
