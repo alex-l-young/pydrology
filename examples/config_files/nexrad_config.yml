@@ -1,0 +1,35 @@
+# Configuration file for NEXRAD processing.
+
+# Directory containing NEXRAD file day sub-directories.
+nexrad_directory: ~/Desktop/NEXRAD_Output
+
+# Number of processors to use in multiprocessing.
+npool: 10
+
+# Date of the scans yyyy-mm-dd.
+date: 2022-07-25
+
+# NEXRAD site code.
+site: KBGM
+
+# Radar variable to include. One of ("REF", "RHO", "ALL")
+variable: REF
+
+# Sweep level.
+sweep: 0
+
+# ----------------------
+# Gridded interpolation.
+
+# Gridded interpolation flag.
+grid_interp: True
+
+# Grid bounds. [maxLat, maxLon, minLat, minLon].
+bounds: [42.913420, -75.870770, 42.067531, -77.116810]
+
+### Specify either num_points or spacing. Set the other to None.
+# Number of points in the grid [Nx, Ny].
+num_points: [300, 300]
+
+# Spacing between grid cells [degX, degY].
+spacing: null
