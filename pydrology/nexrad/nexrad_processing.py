@@ -20,7 +20,7 @@ import argparse
 import yaml
 
 # Local imports.
-from nexrad_config import NexradConfig
+from pydrology.nexrad.nexrad_config import NexradConfig
 
 def nexrad_sweep_to_array(nexrad_filepath, cfg):
     """
@@ -45,7 +45,12 @@ def nexrad_sweep_to_array(nexrad_filepath, cfg):
     }
 
     # First item in ray is header, which has azimuth angle
-    az = np.array([ray[0].az_angle for ray in f.sweeps[sweep]])
+    try:
+        az = np.array([ray[0].az_angle for ray in f.sweeps[sweep]])
+    except Exception as e:
+        print('Could not process: {}'.format(file_dt))
+        print(e)
+        return None
     diff = np.diff(az)
     diff[diff > 180] -= 360.
     diff[diff < -180] += 360.
@@ -144,6 +149,9 @@ class NexNCDF():
         self.output_directory = self.cfg.nexrad_directory # Output directory for netCDF file.
         self.date = self.cfg.date # Date of the scans.
         self.site = self.cfg.site # Site code of scans.
+
+        # Remove any scans that are "None".
+        nexrad_scans = [n for n in nexrad_scans if n is not None]
 
         # Sort scans by datetime.
         self.nexrad_scans = sorted(nexrad_scans, key=lambda d: d['DATETIME'])

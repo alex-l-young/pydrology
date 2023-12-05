@@ -1,16 +1,16 @@
 # Configuration file for NEXRAD processing.
 
 # Directory containing NEXRAD file day sub-directories. Requires absolute path.
-nexrad_directory: C:/.../NEXRAD_Output
+nexrad_directory: ~/Nexrad_Output
 
 # Number of processors to use in multiprocessing.
 npool: 10
 
 # Date of the scans yyyy-mm-dd.
-date: 2022-07-25
+date: 2016-10-08
 
 # NEXRAD site code.
-site: KBGM
+site: KRAX
 
 # Radar variable to include. One of ("REF", "RHO", "ALL")
 variable: REF
@@ -22,7 +22,7 @@ sweep: 0
 # Gridded interpolation.
 
 # Gridded interpolation flag.
-grid_interp: True
+grid_interp: False
 
 # Grid bounds. [maxLat, maxLon, minLat, minLon].
 bounds: [42.913420, -75.870770, 42.067531, -77.116810]

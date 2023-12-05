@@ -26,7 +26,7 @@ def request_acis_data(met_elements, site_id, start_date, end_date):
 
     # Meteorology elements reference.
     met_elements_ref = {'maxt': 'MaxTemp', 'mint': 'MinTemp', 'avgt': 'AvgTemp', 'pcpn': 'Precipitation',
-                        'snow': 'SnowDepth'}
+                        'snow': 'SnowFall', 'snwd': 'SnowDepth'}
 
     # Populate json request.
     json_req = {"elems":[]}
